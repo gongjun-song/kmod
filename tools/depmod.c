@@ -2575,7 +2575,7 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 	static const struct depfile {
 		const char *name;
 		int (*cb)(struct depmod *depmod, FILE *out);
-	} *itr, depfiles[] = {
+	} * itr, depfiles[] = {
 		{ "modules.dep", output_deps },
 		{ "modules.dep.bin", output_deps_bin },
 		{ "modules.alias", output_aliases },
@@ -2614,7 +2614,7 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 	for (itr = depfiles; itr->name != NULL; itr++) {
 		FILE *fp = out;
 		// char tmp[NAME_MAX] = "";
-        _cleanup_free_ char *tmp = NULL;
+		_cleanup_free_ char *tmp = NULL;
 		int r, ferr;
 
 		if (fp == NULL) {
