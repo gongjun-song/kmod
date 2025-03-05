@@ -3,7 +3,7 @@ name: Publish docs
 on:
   # Runs on pushes targeting the default branch
   push:
-    branches: ["master", "ci-test"]
+    branches: ["master", "issue-46"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -20,7 +20,6 @@ concurrency:
   group: "pages"
   cancel-in-progress: false
 
-
 jobs:
   # Build job
   build:
@@ -28,24 +27,15 @@ jobs:
     container:
       image: 'ubuntu:24.04'
     steps:
-      - name: Sparse checkout the local actions
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          sparse-checkout: .github
-
-      - uses: ./.github/actions/setup-ubuntu
-
-      - name: Checkout the whole project
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Build
-        run: |
-          mkdir build
-          cd build
-          meson setup -Ddocs=true . ..
-          meson compile
-          mv libkmod/docs/html ../_site
-      - name: Upload artifact
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: docs
+
+      - name: Upload
         uses: actions/upload-pages-artifact@v3
 
   # Deployment job
