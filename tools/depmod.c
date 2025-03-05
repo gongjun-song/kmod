@@ -2575,7 +2575,7 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 	static const struct depfile {
 		const char *name;
 		int (*cb)(struct depmod *depmod, FILE *out);
-	} * itr, depfiles[] = {
+	} *itr, depfiles[] = {
 		{ "modules.dep", output_deps },
 		{ "modules.dep.bin", output_deps_bin },
 		{ "modules.alias", output_aliases },
@@ -2613,15 +2613,15 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 
 	for (itr = depfiles; itr->name != NULL; itr++) {
 		FILE *fp = out;
-		// char tmp[NAME_MAX] = "";
-		_cleanup_free_ char *tmp = NULL;
+		char tmp[NAME_MAX] = "";
+		// _cleanup_free_ char *tmp = NULL;
 		int r, ferr;
 
 		if (fp == NULL) {
 			int flags = O_CREAT | O_EXCL | O_WRONLY;
 			int mode = 0644;
 			int fd;
-#if 0
+#if 1
 			int n;
 
 			n = snprintf(tmp, sizeof(tmp), "%s.%i.%lli.%lli", itr->name,
@@ -2645,7 +2645,7 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 				    mode);
 				continue;
 			}
-			printf("tmp: %s\n", tmp);
+			// printf("tmp: %s\n", tmp);
 #endif
 			fp = fdopen(fd, "wb");
 			if (fp == NULL) {
