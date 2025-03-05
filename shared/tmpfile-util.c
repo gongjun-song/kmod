@@ -80,22 +80,27 @@ static int get_random_from_syscall(void *p, size_t n)
 	return 0;
 }
 
-#if 0
 static int get_random_from_rand(void *p, size_t n)
 {
-    size_t i = 0;
-    uint8_t *u8p = (uint8_t *)p;
-    if (!p || n == 0)
-        return -EINVAL;
+	static int tag = 0;
+	size_t i = 0;
+	uint8_t *u8p = (uint8_t *)p;
 
-    srand(time(0));
+	if (!p || n == 0) {
+		return -EINVAL;
+	}
 
-    for (i = 0; i < n; i ++) {
-        u8p[i] = rand() % 0xFF;
-    }
-    return 0;
+	// Setup `tag` to make sure only initialize random seed once.
+	if (tag == 0) {
+		srand(time(0));
+		tag = 1;
+	}
+
+	for (i = 0; i < n; i++) {
+		u8p[i] = rand() % 0xFF;
+	}
+	return 0;
 }
-#endif
 
 static int random_bytes(void *p, size_t n)
 {
@@ -105,37 +110,27 @@ static int random_bytes(void *p, size_t n)
 	if (err == 0)
 		return 0;
 
-	return get_random_from_dev(p, n);
+	err = get_random_from_dev(p, n);
+	if (err == 0)
+		return 0;
+
+	return get_random_from_rand(p, n);
 }
 
 static int __tempfn_random(const char *path, char **ret_file)
 {
 	_cleanup_free_ char *tmp_file = NULL;
-	struct timeval tv;
 	uint64_t rnd_u64;
 	int err;
-	char tmp[NAME_MAX] = "";
-	int n;
-
-	gettimeofday(&tv, NULL);
 
 	err = random_bytes(&rnd_u64, sizeof(uint64_t));
 	if (err < 0) {
-		// Failed to generate random number, fall back to use timestamp to generate temporary name
-		n = snprintf(tmp, sizeof(tmp), "%i.%lli.%lli", getpid(),
-			     (long long)tv.tv_usec, (long long)tv.tv_sec);
-		if (n >= (int)sizeof(tmp)) {
-			return -EINVAL;
-		}
-
-		err = asprintf(&tmp_file, "%s/%s", path, tmp);
-		if (err < 0)
-			return -ENOMEM;
-	} else {
-		err = asprintf(&tmp_file, "%s/%" PRIx64, path, rnd_u64);
-		if (err < 0)
-			return -ENOMEM;
+		return err;
 	}
+
+	err = asprintf(&tmp_file, "%s/%" PRIx64, path, rnd_u64);
+	if (err < 0)
+		return -ENOMEM;
 
 	if (ret_file)
 		*ret_file = TAKE_PTR(tmp_file);
@@ -146,7 +141,8 @@ static int __tempfn_random(const char *path, char **ret_file)
 static int tempfn_random(const char *path, char **ret_file)
 {
 	_cleanup_free_ char *tmp_file = NULL;
-	size_t try_count = 10; /* Try 10 times to generate a unique temporary file name */
+	size_t try_count = TEMP_CREATION_TRY_COUNT; /* Try TEMP_CREATION_TRY_COUNT
+				times to generate a unique temporary file name */
 
 	do {
 		int err = __tempfn_random(path, &tmp_file);
