@@ -131,7 +131,8 @@ static int __tempfn_random(const char *path, char **ret_file)
 		return err;
 	}
 
-	err = asprintf(&tmp_file, "%s/%" PRIx64, path, rnd_u64);
+	// err = asprintf(&tmp_file, "%s/%" PRIx64, path, rnd_u64);
+	err = asprintf(&tmp_file, "%" PRIx64, rnd_u64);
 	if (err < 0)
 		return -ENOMEM;
 

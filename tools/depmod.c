@@ -2611,17 +2611,21 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 		}
 	}
 
+#define TEST 0
 	for (itr = depfiles; itr->name != NULL; itr++) {
 		FILE *fp = out;
+#if TEST
 		char tmp[NAME_MAX] = "";
-		// _cleanup_free_ char *tmp = NULL;
+#else
+		_cleanup_free_ char *tmp = NULL;
+#endif
 		int r, ferr;
 
 		if (fp == NULL) {
 			int flags = O_CREAT | O_EXCL | O_WRONLY;
 			int mode = 0644;
 			int fd;
-#if 1
+#if TEST
 			int n;
 
 			n = snprintf(tmp, sizeof(tmp), "%s.%i.%lli.%lli", itr->name,
@@ -2645,7 +2649,7 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 				    mode);
 				continue;
 			}
-			// printf("tmp: %s\n", tmp);
+			printf("tmp: %s\n", tmp);
 #endif
 			fp = fdopen(fd, "wb");
 			if (fp == NULL) {
