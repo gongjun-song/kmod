@@ -2644,7 +2644,7 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 				continue;
 			}
 #else
-			if (fopen_temporary_at(dfd, dname, flags, mode, &fd, &tmp) < 0) {
+			if (fopen_temporary_at(dfd, flags, mode, &fd, &tmp) < 0) {
 				ERR("openat(%s, %s, %o, %o): %m\n", dname, tmp, flags,
 				    mode);
 				continue;

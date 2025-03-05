@@ -120,7 +120,7 @@ static int random_bytes(void *p, size_t n)
 	return get_random_from_rand(p, n);
 }
 
-static int __tempfn_random(const char *path, char **ret_file)
+static int __tempfn_random(char **ret_file)
 {
 	_cleanup_free_ char *tmp_file = NULL;
 	uint64_t rnd_u64;
@@ -131,7 +131,6 @@ static int __tempfn_random(const char *path, char **ret_file)
 		return err;
 	}
 
-	// err = asprintf(&tmp_file, "%s/%" PRIx64, path, rnd_u64);
 	err = asprintf(&tmp_file, "%" PRIx64, rnd_u64);
 	if (err < 0)
 		return -ENOMEM;
@@ -142,14 +141,14 @@ static int __tempfn_random(const char *path, char **ret_file)
 	return 0;
 }
 
-static int tempfn_random(const char *path, char **ret_file)
+static int tempfn_random(char **ret_file)
 {
 	_cleanup_free_ char *tmp_file = NULL;
 	size_t try_count = TEMP_CREATION_TRY_COUNT; /* Try TEMP_CREATION_TRY_COUNT
 				times to generate a unique temporary file name */
 
 	do {
-		int err = __tempfn_random(path, &tmp_file);
+		int err = __tempfn_random(&tmp_file);
 		if (err < 0)
 			continue;
 
@@ -166,17 +165,16 @@ static int tempfn_random(const char *path, char **ret_file)
 	return -EINVAL;
 }
 
-int fopen_temporary_at(int dir_fd, const char *path, int o_flags, int o_mode, int *ret_fd,
-		       char **ret_path)
+int fopen_temporary_at(int dir_fd, int o_flags, int o_mode, int *ret_fd, char **ret_path)
 {
 	_cleanup_free_ char *tmp_file = NULL;
 	int fd = -EBADF;
 	int r;
 
-	if (dir_fd < 0 || !path)
+	if (dir_fd < 0)
 		return -EINVAL;
 
-	r = tempfn_random(path, &tmp_file);
+	r = tempfn_random(&tmp_file);
 	if (r < 0)
 		return r;
 
