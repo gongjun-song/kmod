@@ -3,7 +3,10 @@ name: Publish docs
 on:
   # Runs on pushes targeting the default branch
   push:
-    branches: ["master", "issue-46"]
+    branches:
+      - 'gh-pages'
+    paths:
+      - 'docs/**'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -21,7 +24,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Build job
   build:
     runs-on: ubuntu-latest
     container:

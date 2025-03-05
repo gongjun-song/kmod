@@ -1,0 +1,60 @@
+name: Update docs
+
+on:
+  # Runs on pushes targeting master and tag with prefix `v`
+  push:
+    branches:
+      - 'master'
+    tags:
+      - 'v*'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: 'ubuntu:24.04'
+    steps:
+      # Use checkout@v1 to clone the repo
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Setup Ubuntu
+        uses: ./.github/actions/setup-ubuntu
+
+      - name: Build document
+        run: |
+          meson setup -Ddocs=true build .
+          meson compile -C build
+
+      - name: Fix
+        run:
+          git config --global --add safe.directory $PWD
+
+      - name: Track document
+        shell: bash
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          (git checkout gh-pages && git rebase origin/master) || (git branch gh-pages origin/master && git checkout gh-pages)
+
+          if [[ "${GITHUB_REF}" == refs/heads/* ]]; then
+            DOC_VERSION=${GITHUB_REF#refs/heads/}
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            DOC_VERSION=${GITHUB_REF#refs/tags/}
+          fi
+
+          mkdir -p docs/${DOC_VERSION}
+          mv build/libkmod/docs/html docs/${DOC_VERSION}/
+
+          echo "# API Document" > docs/index.md
+          echo >> docs/index.md
+          ls -l docs/ | awk '/^d/ {print "- ["$NF"]("$NF"/html/index.html)"}' >> docs/index.md
+          cat docs/index.md
+
+          git add docs/${DOC_VERSION}/html
+          git commit -m "Auto-adding document by action"
+          git push origin gh-pages
