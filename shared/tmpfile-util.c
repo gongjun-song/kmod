@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
+/*
+ * Copyright (C) 2025  Wang Wenjie <wenjie2.wang@intel.com>.
+ */
 
 #include <errno.h>
 #include <fcntl.h>
