@@ -133,50 +133,50 @@ TS_EXPORT long delete_module(const char *name, unsigned int flags);
 
 static int remove_directory(const char *path)
 {
-    struct stat st;
+	struct stat st;
 	DIR *dir;
 	struct dirent *entry;
 	char full_path[PATH_MAX];
 
-    if (stat(path, &st) != 0 || !S_ISDIR(st.st_mode)) {
+	if (stat(path, &st) != 0 || !S_ISDIR(st.st_mode)) {
 		LOG("Directory %s not found, skip remove.\n", path);
-        return 0;
-    }
+		return 0;
+	}
 
-    dir = opendir(path);
-    if (!dir) {
+	dir = opendir(path);
+	if (!dir) {
 		ERR("Failed to open directory %s: %s (errno: %d)\n", path, strerror(errno), errno);
-        return -1;
-    }
+		return -1;
+	}
 
-    while ((entry = readdir(dir)) != NULL) {
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
-            continue;
-        }
+	while ((entry = readdir(dir)) != NULL) {
+		if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+			continue;
+		}
 
-        snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+		snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
 
-        if (entry->d_type == DT_DIR) {
-            if (remove_directory(full_path) != 0) {
-                closedir(dir);
+		if (entry->d_type == DT_DIR) {
+			if (remove_directory(full_path) != 0) {
+				closedir(dir);
 				ERR("Failed to remove directory %s: %s (errno: %d)\n", full_path, strerror(errno), errno);
-                return -1;
-            }
-        } else {
-            if (remove(full_path) != 0) {
-                closedir(dir);
+				return -1;
+			}
+		} else {
+			if (remove(full_path) != 0) {
+				closedir(dir);
 				ERR("Failed to remove file %s: %s (errno: %d)\n", full_path, strerror(errno), errno);
-                return -1;
-            }
-        }
-    }
+				return -1;
+			}
+		}
+	}
 
-    closedir(dir);
-    if (rmdir(path) != 0) {
-        ERR("Failed to remove directory %s: %s (errno: %d)\n", path, strerror(errno), errno);
-        return -1;
-    }
-    return 0;
+	closedir(dir);
+	if (rmdir(path) != 0) {
+		ERR("Failed to remove directory %s: %s (errno: %d)\n", path, strerror(errno), errno);
+		return -1;
+	}
+	return 0;
 }
 
 long delete_module(const char *modname, unsigned int flags)

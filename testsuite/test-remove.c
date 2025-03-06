@@ -18,7 +18,7 @@ static noreturn int test_remove(const struct test *t)
 	struct kmod_module *mod;
 	const char *null_config = NULL;
 	int err;
-    struct stat st;
+	struct stat st;
 
 	ctx = kmod_new(NULL, &null_config);
 	if (ctx == NULL)
@@ -42,20 +42,20 @@ static noreturn int test_remove(const struct test *t)
 		exit(EXIT_FAILURE);
 	}
 
-    if (stat("/sys/module/mod_simple", &st) == 0 && S_ISDIR(st.st_mode)) {
+	if (stat("/sys/module/mod_simple", &st) == 0 && S_ISDIR(st.st_mode)) {
 		ERR("could not remove module directory.\n");
-        exit(EXIT_FAILURE);
-    }
+		exit(EXIT_FAILURE);
+	}
 	kmod_unref(ctx);
 
 	exit(EXIT_SUCCESS);
 }
 DEFINE_TEST(test_remove,
-	.description = "test if libkmod's delete_module removes module directory",
-	.config = {
-		[TC_ROOTFS] = TESTSUITE_ROOTFS "test-remove/",
-		[TC_INIT_MODULE_RETCODES] = "",
-		[TC_DELETE_MODULE_RETCODES] = "mod_simple:0:0" STRINGIFY(ENOENT),
-	});
+	    .description = "test if libkmod's delete_module removes module directory",
+	    .config = {
+		    [TC_ROOTFS] = TESTSUITE_ROOTFS "test-remove/",
+		    [TC_INIT_MODULE_RETCODES] = "",
+		    [TC_DELETE_MODULE_RETCODES] = "mod_simple:0:0" STRINGIFY(ENOENT),
+	    });
 
 TESTSUITE_MAIN();
