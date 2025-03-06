@@ -1,0 +1,101 @@
+name: Publish docs
+
+on:
+  # Runs on pushes targeting master and tag with prefix `v`
+  push:
+    branches:
+      - 'master'
+    tags:
+      - 'v*'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: 'ubuntu:24.04'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1 # V1 does it by git clone, other versions do it by calling REST APIs.
+
+      - name: Setup Ubuntu
+        uses: ./.github/actions/setup-ubuntu
+
+      - name: Setup Git # See https://github.com/ad-m/github-push-action?tab=readme-ov-file#example-workflow-file
+        run: |
+          git config --global --add safe.directory $PWD
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Build document
+        run: |
+          meson setup -Ddocs=true build .
+          meson compile -C build
+
+      - name: Checkout gh-pages
+        run: (git checkout gh-pages && git rebase origin/master) || (git branch gh-pages origin/master && git checkout gh-pages)
+
+      - name: Extract document version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/heads/* ]]; then
+            echo DOC_VERSION=${GITHUB_REF#refs/heads/} >> $GITHUB_ENV
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo DOC_VERSION=${GITHUB_REF#refs/tags/} >> $GITHUB_ENV
+          else
+            exit 1
+          fi
+
+      - name: Track document
+        run: |
+          rm -rf docs/${DOC_VERSION}
+          mkdir -p docs/${DOC_VERSION}
+          mv build/libkmod/docs/html docs/${DOC_VERSION}/
+
+      # Replace the generated index.md with Jekyll themes to customize the index page.
+      - name: Generate frontpage
+        run: |
+          echo "# API Document" > docs/index.md
+          echo >> docs/index.md
+          ls -lr docs/ | awk '/^d/ {print "- ["$NF"]("$NF"/html/index.html)"}' >> docs/index.md
+
+      - name: Commit document
+        run: |
+          git add docs/${DOC_VERSION}/html docs/index.md
+          git commit -m "Auto-adding $DOC_VERSION document" || true
+
+      - name: Push to remote
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages
+
+      - name: Jekyll building
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: docs
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
