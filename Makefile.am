@@ -65,6 +65,8 @@ shared_libshared_la_SOURCES = \
 	shared/missing.h \
 	shared/strbuf.c \
 	shared/strbuf.h \
+	shared/tmpfile-util.c \
+	shared/tmpfile-util.h \
 	shared/util.c \
 	shared/util.h
 
