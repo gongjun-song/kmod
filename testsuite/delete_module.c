@@ -145,7 +145,8 @@ static int remove_directory(const char *path)
 
 	dir = opendir(path);
 	if (!dir) {
-		ERR("Failed to open directory %s: %s (errno: %d)\n", path, strerror(errno), errno);
+		ERR("Failed to open directory %s: %s (errno: %d)\n", path,
+		    strerror(errno), errno);
 		return -1;
 	}
 
@@ -159,13 +160,15 @@ static int remove_directory(const char *path)
 		if (entry->d_type == DT_DIR) {
 			if (remove_directory(full_path) != 0) {
 				closedir(dir);
-				ERR("Failed to remove directory %s: %s (errno: %d)\n", full_path, strerror(errno), errno);
+				ERR("Failed to remove directory %s: %s (errno: %d)\n",
+				    full_path, strerror(errno), errno);
 				return -1;
 			}
 		} else {
 			if (remove(full_path) != 0) {
 				closedir(dir);
-				ERR("Failed to remove file %s: %s (errno: %d)\n", full_path, strerror(errno), errno);
+				ERR("Failed to remove file %s: %s (errno: %d)\n", full_path,
+				    strerror(errno), errno);
 				return -1;
 			}
 		}
@@ -173,7 +176,8 @@ static int remove_directory(const char *path)
 
 	closedir(dir);
 	if (rmdir(path) != 0) {
-		ERR("Failed to remove directory %s: %s (errno: %d)\n", path, strerror(errno), errno);
+		ERR("Failed to remove directory %s: %s (errno: %d)\n", path,
+		    strerror(errno), errno);
 		return -1;
 	}
 	return 0;
