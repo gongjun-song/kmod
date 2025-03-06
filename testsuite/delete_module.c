@@ -190,16 +190,17 @@ long delete_module(const char *modname, unsigned int flags)
 	char buf[PATH_MAX];
 	const char *sysfsmod = "/sys/module/";
 	int len = strlen(sysfsmod);
-	memcpy(buf, sysfsmod, len);
-	strcpy(buf + len, modname);
-	ret = remove_directory(buf);
-	if (ret != 0)
-		return ret;
 
 	init_retcodes();
 	mod = find_module(modules, modname);
 	if (mod == NULL)
 		return 0;
+
+	memcpy(buf, sysfsmod, len);
+	strcpy(buf + len, modname);
+	ret = remove_directory(buf);
+	if (ret != 0)
+		return ret;
 
 	errno = mod->errcode;
 	return mod->ret;
