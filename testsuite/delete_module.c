@@ -167,8 +167,8 @@ static int remove_directory(const char *path)
 		} else {
 			if (remove(full_path) != 0) {
 				closedir(dir);
-				ERR("Failed to remove file %s: %s (errno: %d)\n", full_path,
-				    strerror(errno), errno);
+				ERR("Failed to remove file %s: %s (errno: %d)\n",
+				    full_path, strerror(errno), errno);
 				return -1;
 			}
 		}
