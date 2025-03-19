@@ -24,6 +24,7 @@
 #include <shared/hash.h>
 #include <shared/macro.h>
 #include <shared/strbuf.h>
+#include <shared/tmpfile-util.h>
 #include <shared/util.h>
 
 #include <libkmod/libkmod-internal.h>
@@ -2585,6 +2586,8 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 	const char *dname = depmod->cfg->outdirname;
 	int dfd, err = 0;
 	struct timeval tv;
+	// char tmp[PATH_MAX];
+	_cleanup_free_ char *tmp_parent;
 
 	gettimeofday(&tv, NULL);
 
@@ -2603,6 +2606,10 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 			return err;
 		}
 	}
+
+	read_link(dfd, &tmp_parent);
+	ERR("depmod dirname: %s, %s\n", dname, tmp_parent);
+	printf("depmod dirname: %s, %s\n", dname, tmp_parent);
 
 	for (itr = depfiles; itr->name != NULL; itr++) {
 		FILE *fp = out;
