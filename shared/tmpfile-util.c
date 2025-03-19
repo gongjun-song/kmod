@@ -45,13 +45,15 @@ int tmpfile_init(struct tmpfile *file, const char *targetname)
 		goto create_fail;
 	}
 
-	file->f = fopen(file->tmpname, "wb");
-	if (file->f == NULL) {
+	if (fchmod(fd, mode) < 0) {
+		close(fd);
 		err = -errno;
 		goto create_fail;
 	}
 
-	if (chmod(file->tmpname, mode) != 0) {
+	file->f = fdopen(fd, "wb");
+	if (file->f == NULL) {
+		close(fd);
 		err = -errno;
 		goto create_fail;
 	}
