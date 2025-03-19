@@ -2619,37 +2619,10 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 		int r, ferr;
 
 		if (fp == NULL) {
-	#if 0
-			int flags = O_CREAT | O_EXCL | O_WRONLY;
-			int mode = 0644;
-			int fd;
-			int n;
-
-			n = snprintf(tmp, sizeof(tmp), "%s.%i.%lli.%lli", itr->name,
-				     getpid(), (long long)tv.tv_usec,
-				     (long long)tv.tv_sec);
-			if (n >= (int)sizeof(tmp)) {
-				ERR("bad filename: %s.%i.%lli.%lli: path too long\n",
-				    itr->name, getpid(), (long long)tv.tv_usec,
-				    (long long)tv.tv_sec);
-				continue;
-			}
-			fd = openat(dfd, tmp, flags, mode);
-			if (fd < 0) {
-				ERR("openat(%s, %s, %o, %o): %m\n", dname, tmp, flags,
-				    mode);
-				continue;
-			}
-			fp = fdopen(fd, "wb");
-			if (fp == NULL) {
-				ERR("fdopen(%d=%s/%s): %m\n", fd, dname, tmp);
-				close(fd);
-				continue;
-			}
-	#else
 			size_t len = strlen(dpath) + strlen(itr->name) + 2;
 			if (len >= PATH_MAX) {
-				ERR("bad filename: %s/%s: path too long\n", dpath, itr->name);
+				ERR("bad filename: %s/%s: path too long\n", dpath,
+				    itr->name);
 				continue;
 			}
 			memset(outputname, 0, PATH_MAX);
@@ -2662,19 +2635,15 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 				continue;
 			}
 			fp = file.f;
-	#endif
 		}
 
 		r = itr->cb(depmod, fp);
 		if (fp == out)
 			continue;
 
-		// ferr = ferror(fp) | fclose(fp);
 		ferr = ferror(fp);
 
 		if (r < 0) {
-			// if (unlinkat(dfd, tmp, 0) != 0)
-			// 	ERR("unlinkat(%s, %s): %m\n", dname, tmp);
 			tmpfile_release(&file);
 
 			ERR("Could not write index '%s': %s\n", itr->name, strerror(-r));
@@ -2682,7 +2651,6 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 			break;
 		}
 
-		// if (renameat(dfd, tmp, dfd, itr->name) != 0) {
 		err = tmpfile_publish(&file);
 		if (err != 0) {
 			err = -errno;
