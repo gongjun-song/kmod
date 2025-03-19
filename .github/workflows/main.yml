@@ -184,7 +184,7 @@ jobs:
 
       - name: test
         if: ${{ matrix.skip_test != 'true' }}
-        run: cd build && meson test || meson test --verbose
+        run: cd build && meson test --verbose --print-errorlogs
 
       - name: install
         run: cd build && DESTDIR=$PWD/inst meson install
