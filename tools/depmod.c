@@ -2586,8 +2586,9 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 	const char *dname = depmod->cfg->outdirname;
 	int dfd, err = 0;
 	struct timeval tv;
-	// char tmp[PATH_MAX];
-	_cleanup_free_ char *tmp_parent;
+	_cleanup_free_ char *dpath;
+	struct tmpfile file;
+	char outputname[PATH_MAX];
 
 	gettimeofday(&tv, NULL);
 
@@ -2605,11 +2606,12 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 			CRIT("could not open directory %s: %m\n", dname);
 			return err;
 		}
+		if (get_absolute_path(dfd, &dpath) < 0) {
+			err = -errno;
+			CRIT("could not read directory name %s: %m\n", dname);
+			return err;
+		}
 	}
-
-	read_link(dfd, &tmp_parent);
-	ERR("depmod dirname: %s, %s\n", dname, tmp_parent);
-	printf("depmod dirname: %s, %s\n", dname, tmp_parent);
 
 	for (itr = depfiles; itr->name != NULL; itr++) {
 		FILE *fp = out;
@@ -2617,6 +2619,7 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 		int r, ferr;
 
 		if (fp == NULL) {
+	#if 0
 			int flags = O_CREAT | O_EXCL | O_WRONLY;
 			int mode = 0644;
 			int fd;
@@ -2643,24 +2646,45 @@ static int depmod_output(struct depmod *depmod, FILE *out)
 				close(fd);
 				continue;
 			}
+	#else
+			size_t len = strlen(dpath) + strlen(itr->name) + 2;
+			if (len >= PATH_MAX) {
+				ERR("bad filename: %s/%s: path too long\n", dpath, itr->name);
+				continue;
+			}
+			memset(outputname, 0, PATH_MAX);
+			snprintf(outputname, len, "%s/%s", dpath, itr->name);
+
+			err = tmpfile_init(&file, outputname);
+			if (err < 0) {
+				ERR("fail to create temporary for (%s): %m\n", outputname);
+				tmpfile_release(&file);
+				continue;
+			}
+			fp = file.f;
+	#endif
 		}
 
 		r = itr->cb(depmod, fp);
 		if (fp == out)
 			continue;
 
-		ferr = ferror(fp) | fclose(fp);
+		// ferr = ferror(fp) | fclose(fp);
+		ferr = ferror(fp);
 
 		if (r < 0) {
-			if (unlinkat(dfd, tmp, 0) != 0)
-				ERR("unlinkat(%s, %s): %m\n", dname, tmp);
+			// if (unlinkat(dfd, tmp, 0) != 0)
+			// 	ERR("unlinkat(%s, %s): %m\n", dname, tmp);
+			tmpfile_release(&file);
 
 			ERR("Could not write index '%s': %s\n", itr->name, strerror(-r));
 			err = -errno;
 			break;
 		}
 
-		if (renameat(dfd, tmp, dfd, itr->name) != 0) {
+		// if (renameat(dfd, tmp, dfd, itr->name) != 0) {
+		err = tmpfile_publish(&file);
+		if (err != 0) {
 			err = -errno;
 			CRIT("renameat(%s, %s, %s, %s): %m\n", dname, tmp, dname,
 			     itr->name);

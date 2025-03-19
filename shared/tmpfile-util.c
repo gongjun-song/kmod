@@ -6,6 +6,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <libgen.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -15,61 +16,52 @@
 #include <unistd.h>
 
 #include "tmpfile-util.h"
-
-int read_link(int fd, char **ret_path)
-{
-	char proc_path[PATH_MAX];
-	char fd_path[PATH_MAX];
-	ssize_t len;
-
-	len = snprintf(proc_path, sizeof(proc_path), "/proc/self/fd/%d", fd);
-	if (len < 0 || len >= (ssize_t)sizeof(proc_path)) {
-		return -errno;
-	}
-
-	len = readlink(proc_path, fd_path, sizeof(fd_path) - 1);
-	if (len < 0 || len >= (ssize_t)sizeof(fd_path)) {
-		return -errno;
-	}
-
-	fd_path[len] = '\0';
-
-	if (ret_path != NULL) {
-		*ret_path = strdup(fd_path);
-	}
-
-	return 0;
-}
+#include "macro.h"
 
 int tmpfile_init(struct tmpfile *file, const char *targetname)
 {
-	int fd;
+	int fd, n, err;
 	int mode = 0644;
-	const char *pattern = "/tmp/tmpfileXXXXXXXX";
+	char *targetdir;
+	_cleanup_free_ char *dup_target = strdup(targetname);
 
-	if (file == NULL) {
+	if (file == NULL || targetname == NULL) {
 		return -EINVAL;
 	}
 
+	targetdir = dirname(dup_target);
+	memset(file->tmpname, 0, PATH_MAX);
+	n = snprintf(file->tmpname, PATH_MAX, "%s/tmpfileXXXXXXXX", targetdir);
+	if (n >= PATH_MAX) {
+		err = -EINVAL;
+		goto create_fail;
+	}
+
 	file->targetname = targetname;
-	memcpy(file->tmpname, pattern, strlen(pattern));
 
 	fd = mkstemp(file->tmpname);
-	if (fd < 0)
+	if (fd < 0) {
+		err = -errno;
 		goto create_fail;
+	}
 
 	file->f = fopen(file->tmpname, "wb");
-	if (file->f == NULL)
+	if (file->f == NULL) {
+		err = -errno;
 		goto create_fail;
-	if (chmod(file->tmpname, mode) != 0)
+	}
+
+	if (chmod(file->tmpname, mode) != 0) {
+		err = -errno;
 		goto create_fail;
+	}
 
 	return 0;
 create_fail:
 	file->f = NULL;
 	file->targetname = NULL;
 	memset(file->tmpname, 0, PATH_MAX);
-	return -errno;
+	return err;
 }
 
 int tmpfile_publish(struct tmpfile *file)
@@ -82,23 +74,30 @@ int tmpfile_publish(struct tmpfile *file)
 	if (file->targetname == NULL)
 		return -EINVAL;
 
+	printf("from: %s, to: %s\n", file->tmpname, file->targetname);
 	if (rename(file->tmpname, file->targetname) != 0)
 		return -errno;
 
+	file->f = NULL;
+	file->targetname = NULL;
+	memset(file->tmpname, 0, PATH_MAX);
 	return 0;
 }
 
-int tmpfile_release(struct tmpfile *file)
+void tmpfile_release(struct tmpfile *file)
 {
 	if (file == NULL || file->f == NULL) {
-		return -EINVAL;
+		return;
 	}
 	fclose(file->f);
 
-	if (remove(file->tmpname) != 0)
-		return -errno;
+	if (access(file->tmpname, F_OK) == 0) {
+		remove(file->tmpname);
+	}
 
-	return 0;
+	file->f = NULL;
+	file->targetname = NULL;
+	memset(file->tmpname, 0, PATH_MAX);
 }
 
 int tmpfile_write(struct tmpfile *file, const char *bytes, size_t count)
